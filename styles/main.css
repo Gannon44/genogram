@@ -112,6 +112,7 @@
     stroke: #888;
     stroke-width: 2;
   }
+
   
   .handle {
     fill: var(--highlight-color);
@@ -119,14 +120,14 @@
   }
   
   /*--------------------------------------
-    CURSOR STATES (for panning)
+  CURSOR STATES (for panning)
   --------------------------------------*/
   #canvas-container.dragging {
     cursor: grabbing;
   }
   
   /*--------------------------------------
-    UTILITY
+  UTILITY
   --------------------------------------*/
   /* Hide any default page borders */
   * {
@@ -134,3 +135,13 @@
     border: none;
   }
   
+  
+  /* marquee‐select box */
+  #marquee {
+      display: none;
+      position: absolute;
+      border: 1px dashed var(--highlight-color);
+      background-color: rgba(79, 195, 247, 0.2);
+      pointer-events: none;
+      z-index: 5;
+    }

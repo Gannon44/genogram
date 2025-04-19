@@ -1,0 +1,87 @@
+{
+  "people": [
+    {
+      "id": "p_7rrlojp79",
+      "firstName": "Dave",
+      "middleName": "",
+      "lastName": "",
+      "hyphenatedLastName": "",
+      "formerLastNames": [],
+      "birthDate": null,
+      "alive": true,
+      "deathDate": null,
+      "gender": "male",
+      "sexualOrientation": "straight",
+      "notes": "",
+      "position": {
+        "x": 160,
+        "y": 60
+      }
+    },
+    {
+      "id": "p_dlotp1eba",
+      "firstName": "Anita",
+      "middleName": "",
+      "lastName": "",
+      "hyphenatedLastName": "",
+      "formerLastNames": [],
+      "birthDate": null,
+      "alive": true,
+      "deathDate": null,
+      "gender": "female",
+      "sexualOrientation": "straight",
+      "notes": "",
+      "position": {
+        "x": 260,
+        "y": 60
+      }
+    }
+  ],
+  "relationships": [
+    {
+      "id": "r_def76dfi2",
+      "type": "married",
+      "people": [
+        "p_dlotp1eba",
+        "p_7rrlojp79"
+      ],
+      "meta": {}
+    },
+    {
+      "id": "r_9hghte2fk",
+      "type": "legal_separation",
+      "people": [
+        "p_dlotp1eba",
+        "p_7rrlojp79"
+      ],
+      "meta": {}
+    },
+    {
+      "id": "r_0bvue8vmp",
+      "type": "divorced_remarried",
+      "people": [
+        "p_dlotp1eba",
+        "p_7rrlojp79"
+      ],
+      "meta": {}
+    },
+    {
+      "id": "r_obb9ge8k7",
+      "type": "other_unknown",
+      "people": [
+        "p_dlotp1eba",
+        "p_7rrlojp79"
+      ],
+      "meta": {}
+    },
+    {
+      "id": "r_m8ll3hx07",
+      "type": "married",
+      "people": [
+        "p_dlotp1eba",
+        "p_7rrlojp79"
+      ],
+      "meta": {}
+    }
+  ]
+}

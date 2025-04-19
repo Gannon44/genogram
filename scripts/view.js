@@ -64,8 +64,71 @@ export function render(gen) {
     svg.appendChild(bg);
   
     // 4) Draw relationships (couple, parent‑child, twins…)
+    // draw relationships
     gen.getRelationships().forEach(rel => {
-      // existing relationship‐drawing logic here…
+      const [idA, idB] = rel.people;
+      const pA = gen.people.get(idA);
+      const pB = gen.people.get(idB);
+      if (!pA || !pB) return;
+
+      const style = REL_STYLE[rel.type] || { dash: "", overlays: [] };
+      const dash = style.dash;
+
+      // determine left vs right endpoints for horizontal symmetry
+      let x1 = pA.position.x, y1 = pA.position.y;
+      let x2 = pB.position.x, y2 = pB.position.y;
+      if (x1 > x2) {
+        [x1, x2] = [x2, x1];
+        [y1, y2] = [y2, y1];
+      }
+
+      const group = document.createElementNS(svg.namespaceURI, "g");
+      group.setAttribute("class", "relationship-group");
+      group.dataset.id = rel.id;
+
+      const drop = 20;
+      // vertical down from each symbol
+      [ { x: x1, y: y1 }, { x: x2, y: y2 } ].forEach(pt => {
+        const v = document.createElementNS(svg.namespaceURI, "line");
+        v.setAttribute("x1", pt.x);
+        v.setAttribute("y1", pt.y);
+        v.setAttribute("x2", pt.x);
+        v.setAttribute("y2", pt.y + drop);
+        v.setAttribute("class", "relationship");
+        v.setAttribute("stroke-dasharray", dash);
+        group.appendChild(v);
+      });
+
+      // horizontal connector
+      const h = document.createElementNS(svg.namespaceURI, "line");
+      h.setAttribute("x1", x1);
+      h.setAttribute("y1", pA.position.y + drop);
+      h.setAttribute("x2", x2);
+      h.setAttribute("y2", pA.position.y + drop);
+      h.setAttribute("class", "relationship");
+      h.setAttribute("stroke-dasharray", dash);
+      group.appendChild(h);
+
+      // overlay slashes/backslashes
+      const centerX = (x1 + x2) / 2;
+      const centerY = pA.position.y + drop;
+      const size = 10;
+      style.overlays.forEach((ch, idx) => {
+        const dx = (idx - (style.overlays.length - 1)/2) * 6;
+        const path = document.createElementNS(svg.namespaceURI, "path");
+        if (ch === "/") {
+          // forward slash
+          path.setAttribute("d", `M ${centerX+dx - size/2} ${centerY - size/2} L ${centerX+dx + size/2} ${centerY + size/2}`);
+        } else {
+          // backslash
+          path.setAttribute("d", `M ${centerX+dx - size/2} ${centerY + size/2} L ${centerX+dx + size/2} ${centerY - size/2}`);
+        }
+        path.setAttribute("stroke", "#888");
+        path.setAttribute("stroke-width", "2");
+        group.appendChild(path);
+      });
+
+      svg.appendChild(group);
     });
   
     // 5) Draw people on top

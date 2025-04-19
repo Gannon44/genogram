@@ -22,6 +22,19 @@ export default class Controller {
     this.panStart = {};
     this.viewBoxStart = {};
 
+    // // marquee‐select state
+    // this.isSelectingBox = false;
+    // this.selStart       = null;
+    // this.selectBoxEl    = document.createElementNS(this.svg.namespaceURI, "rect");
+    // this.selectBoxEl.setAttribute("class", "select-rect");
+    // this.selectBoxEl.setAttribute("stroke-dasharray", "4");
+    // this.selectBoxEl.setAttribute("fill", "none");
+    // this.svg.appendChild(this.selectBoxEl);
+    // marquee‐select state (HTML overlay)
+    this.isSelectingBox   = false;
+    this.boxStartClient   = null;
+    this.marquee          = document.getElementById("marquee");
+
     // initialize viewBox
     const w = this.svg.clientWidth, h = this.svg.clientHeight;
     this.svg.setAttribute("viewBox", `0 0 ${w} ${h}`);
@@ -66,8 +79,8 @@ export default class Controller {
     this.addMenu?.style && (this.addMenu.style.display = "none");
     this.pendingAdd = null;
 
-    // SHIFT+click blank → show add‑menu
-    if (evt.shiftKey && !personEl && !relEl) {
+    // CTRL+click blank → show add‑menu
+    if (evt.ctrlKey && !personEl && !relEl) {
       const snapped = this._snapToGrid(pt.x, pt.y);
       this.pendingAdd = snapped;
       this.addMenu.style.left = `${evt.clientX}px`;
@@ -76,10 +89,37 @@ export default class Controller {
       return;
     }
 
+    // // SHIFT‑drag blank → start box‐select
+    // if (evt.shiftKey && !personEl && !relEl && evt.button === 0) {
+    //   this.isSelectingBox = true;
+    //   this.selStart = { x: evt.clientX, y: evt.clientY, svgPt: pt };
+    //   this.selectBoxEl.style.display = "block";
+    //   this.selectBoxEl.setAttribute("x", pt.x);
+    //   this.selectBoxEl.setAttribute("y", pt.y);
+    //   this.selectBoxEl.setAttribute("width", 0);
+    //   this.selectBoxEl.setAttribute("height", 0);
+    //   return;
+    // }
+
+    if (evt.shiftKey && !personEl && !relEl && evt.button === 0) {
+        // start marquee selection
+        this.isSelectingBox = true;
+        this.dragging       = true;
+        this.dragTarget     = { type: 'marquee' };
+        this.boxStartClient = { x: evt.clientX, y: evt.clientY };
+        this.marquee.style.display = "block";
+        this.marquee.style.left   = `${evt.clientX}px`;
+        this.marquee.style.top    = `${evt.clientY}px`;
+        this.marquee.style.width  = `0px`;
+        this.marquee.style.height = `0px`;
+        return;
+      }
+
+
     // click person → select + details + start drag
     if (personEl) {
       const id = personEl.dataset.id;
-      if (evt.ctrlKey) this._togglePerson(id);
+      if (evt.shiftKey) this._togglePerson(id);
       else             this._selectPerson(id, false);
 
       this.render(this.gen);
@@ -119,6 +159,40 @@ export default class Controller {
     if (!this.dragging) return;
     const pt = this._getSVGPoint(evt);
 
+    // // update marquee box
+    // if (this.isSelectingBox) {
+    //   const start = this.selStart.svgPt;
+    //   const cur   = this._getSVGPoint(evt);
+    //   const x = Math.min(start.x, cur.x),
+    //         y = Math.min(start.y, cur.y),
+    //         w = Math.abs(cur.x - start.x),
+    //         h = Math.abs(cur.y - start.y);
+    //   this.selectBoxEl.setAttribute("x", x);
+    //   this.selectBoxEl.setAttribute("y", y);
+    //   this.selectBoxEl.setAttribute("width", w);
+    //   this.selectBoxEl.setAttribute("height", h);
+    //   return;
+    // }
+    
+    // if no other drag target, bail early
+    if (!this.dragTarget) return;
+
+
+    // update HTML marquee overlay
+    if (this.dragTarget?.type === 'marquee') {
+      const dx = evt.clientX - this.boxStartClient.x;
+      const dy = evt.clientY - this.boxStartClient.y;
+      const left = dx >= 0 ? this.boxStartClient.x : evt.clientX;
+      const top  = dy >= 0 ? this.boxStartClient.y : evt.clientY;
+      this.marquee.style.left   = `${left}px`;
+      this.marquee.style.top    = `${top}px`;
+      this.marquee.style.width  = `${Math.abs(dx)}px`;
+      this.marquee.style.height = `${Math.abs(dy)}px`;
+      return;
+    }
+
+
+
     if (this.dragTarget.type === "person") {
       const p = this.gen.people.get(this.dragTarget.id);
       const rawX = pt.x - this.dragOffset.x;
@@ -141,6 +215,63 @@ export default class Controller {
   }
 
   _onMouseUp() {
+    // // finish marquee‐select
+    // if (this.isSelectingBox) {
+    //   this.isSelectingBox = false;
+    //   this.selectBoxEl.style.display = "none";
+    //   const box = this.selectBoxEl.getBBox();
+    //   // clear prev selections
+    //   this._clearSelection();
+    //   // select people inside
+    //   for (const [id,p] of this.gen.people) {
+    //     if (p.position.x >= box.x && p.position.x <= box.x+box.width &&
+    //         p.position.y >= box.y && p.position.y <= box.y+box.height) {
+    //       this.selectedPeople.add(id);
+    //     }
+    //   }
+    //   // select any relationship whose endpoints are both inside
+    //   for (const [rid,rel] of this.gen.relationships) {
+    //     const [a,b] = rel.people.map(pid => this.gen.people.get(pid).position);
+    //     if (a.x >= box.x && a.x <= box.x+box.width &&
+    //         a.y >= box.y && a.y <= box.y+box.height &&
+    //         b.x >= box.x && b.x <= box.x+box.width &&
+    //         b.y >= box.y && b.y <= box.y+box.height) {
+    //       this.selectedRel = rid;
+    //     }
+    //   }
+    //   this.render(this.gen);
+    //   this._updateHighlights();
+    //   this._renderDetails();
+    //   return;
+    // }
+
+
+
+    // finish HTML marquee select
+    if (this.dragTarget?.type === 'marquee') {
+      this.isSelectingBox = false;
+      this.marquee.style.display = "none";
+      const mrect = this.marquee.getBoundingClientRect();
+      this._clearSelection();
+      // select persons whose center falls inside marquee
+      this.svg.querySelectorAll('.person').forEach(el => {
+        const pr = el.getBoundingClientRect();
+        const cx = pr.left + pr.width/2;
+        const cy = pr.top  + pr.height/2;
+        if (cx >= mrect.left && cx <= mrect.right &&
+            cy >= mrect.top  && cy <= mrect.bottom) {
+          this.selectedPeople.add(el.dataset.id);
+        }
+      });
+      // TODO: select relationships inside marquee...
+      this.render(this.gen);
+      this._updateHighlights();
+      this._renderDetails();
+      this.dragTarget = null;
+      return;
+    }
+
+
     this.dragging = false;
     this.dragTarget = null;
     this.svg.classList.remove("dragging");
@@ -245,6 +376,20 @@ export default class Controller {
   _renderDetails() {
     const container = this.detailsContainer;
     container.innerHTML = "";
+
+    // multi‐person: show couple dropdown
+    if (this.selectedPeople.size === 2 && !this.selectedRel) {
+      const [id1,id2] = Array.from(this.selectedPeople);
+      return this._renderPairForm(id1, id2);
+    }
+    // single person + single rel (parent/child) → parent/child form
+    if (this.selectedPeople.size === 1 && this.selectedRel) {
+      const pid = Array.from(this.selectedPeople)[0];
+      const rel = this.gen.relationships.get(this.selectedRel);
+      if (["biological_child","foster_child","adopted_child"].includes(rel.type)) {
+        return this._renderParentChildForm(rel, pid);
+      }
+    }
 
     // If one person selected
     if (this.selectedPeople.size === 1 && !this.selectedRel) {
@@ -427,6 +572,75 @@ _renderPersonForm(p) {
     c.appendChild(mkField("Notes", notes));
   }
   
+  // — Helpers for the new multi‐select forms —
+  _renderPairForm(id1, id2) {
+    const c = this.detailsContainer;
+    c.innerHTML = "";
+    // find existing couple
+    const existing = Array.from(this.gen.relationships.values())
+      .find(r => new Set(r.people).has(id1) && new Set(r.people).has(id2)
+              && ["married","legal_separation","divorced","divorced_remarried",
+                  "separation_in_fact","engagement","short_term","temporary","other_unknown"]
+                .includes(r.type));
+    const sel = document.createElement("select");
+    // none
+    sel.appendChild(Object.assign(document.createElement("option"), {
+      value: "none", textContent: "No Relationship"
+    }));
+    // only couple types
+    RELATIONSHIP_TYPES.filter(o =>
+      ["married","legal_separation","divorced","divorced_remarried",
+      "separation_in_fact","engagement","short_term","temporary","other_unknown"]
+      .includes(o.code)
+    ).forEach(o => {
+      const opt = document.createElement("option");
+      opt.value = o.code; opt.textContent = o.label;
+      if (existing && existing.type === o.code) opt.selected = true;
+      sel.appendChild(opt);
+    });
+    sel.addEventListener("change", e => {
+      const code = e.target.value;
+      if (existing) {
+        code === "none" ? this.gen.removeRelationship(existing.id)
+                      : existing.type = code;
+      } else if (code !== "none") {
+        this.gen.addRelationship(new Relationship({
+          type: code, people: [id1, id2]
+        }));
+      }
+      this.render(this.gen);
+      this._updateHighlights();
+    });
+    c.appendChild(Object.assign(document.createElement("label"), {
+      textContent: "Couple Relationship"
+    }));
+    c.appendChild(sel);
+  }
+
+  _renderParentChildForm(rel, childId) {
+      const c = this.detailsContainer;
+      c.innerHTML = "";
+      // find other person as parent
+      const parentId = rel.people.find(pid => pid !== childId);
+      const parent   = this.gen.people.get(parentId);
+      const sel = document.createElement("select");
+      ["biological_child","foster_child","adopted_child"].forEach(code => {
+        const o = document.createElement("option");
+        o.value = code;
+        o.textContent = RELATIONSHIP_TYPES.find(rt => rt.code === code).label;
+        if (rel.type === code) o.selected = true;
+        sel.appendChild(o);
+      });
+      sel.addEventListener("change", e => {
+        rel.type = e.target.value;
+        this.render(this.gen);
+        this._updateHighlights();
+      });
+      c.appendChild(Object.assign(document.createElement("label"), {
+        textContent: `Parent–Child (${parent.firstName} → Child)`
+      }));
+      c.appendChild(sel);
+    }
 
   _renderRelationshipForm(rel) {
     const c = this.detailsContainer;
