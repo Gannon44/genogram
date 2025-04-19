@@ -22,6 +22,12 @@ export default class Controller {
     this.panStart = {};
     this.viewBoxStart = {};
 
+    // // marquee‐select state
+    this.isSelectingBox = false;
+    this.boxStartClient = null;
+    this.selStart = null;
+    this.marquee = document.getElementById("marquee");
+
     // initialize viewBox
     const w = this.svg.clientWidth, h = this.svg.clientHeight;
     this.svg.setAttribute("viewBox", `0 0 ${w} ${h}`);
@@ -31,10 +37,10 @@ export default class Controller {
   }
 
   _addEventListeners() {
-    this.svg.addEventListener("mousedown", (e) => this._onMouseDown(e));
-    window.addEventListener("mousemove", (e) => this._onMouseMove(e));
-    window.addEventListener("mouseup",   ()  => this._onMouseUp());
-    this.svg.addEventListener("wheel",    (e) => this._onWheel(e), { passive: false });
+    this.svg.addEventListener("mousedown", (evt) => this._onMouseDown(evt));
+    window.addEventListener("mousemove", (evt) => this._onMouseMove(evt));
+    window.addEventListener("mouseup", (evt) => this._onMouseUp(evt));
+    this.svg.addEventListener("wheel", (evt) => this._onWheel(evt), { passive: false });
 
     // Add‑menu clicks
     this.addMenu.addEventListener("click", (evt) => {
@@ -53,40 +59,56 @@ export default class Controller {
       this.pendingAdd = null;
     });
 
-    window.addEventListener("keydown", (e) => this._onKeyDown(e));
-    this.svg.addEventListener("dragstart", (e) => e.preventDefault());
+    window.addEventListener("keydown", (evt) => this._onKeyDown(evt));
+    this.svg.addEventListener("dragstart", (evt) => evt.preventDefault());
   }
 
   _onMouseDown(evt) {
     const pt = this._getSVGPoint(evt);
     const personEl = evt.target.closest(".person");
-    const relEl    = evt.target.closest(".relationship-group");
+    const relEl = evt.target.closest(".relationship-group");
 
     // hide add‑menu
     this.addMenu?.style && (this.addMenu.style.display = "none");
     this.pendingAdd = null;
 
-    // SHIFT+click blank → show add‑menu
-    if (evt.shiftKey && !personEl && !relEl) {
+    // CTRL+click blank → show add‑menu
+    if (evt.ctrlKey && !personEl && !relEl) {
       const snapped = this._snapToGrid(pt.x, pt.y);
       this.pendingAdd = snapped;
       this.addMenu.style.left = `${evt.clientX}px`;
-      this.addMenu.style.top  = `${evt.clientY}px`;
+      this.addMenu.style.top = `${evt.clientY}px`;
       this.addMenu.style.display = "block";
       return;
     }
 
+    if (evt.shiftKey && !personEl && !relEl && evt.button === 0) {
+      // start marquee selection
+      this.isSelectingBox = true;
+      this.dragging = true;
+      this.dragTarget = { type: 'marquee' };
+      this.boxStartClient = { x: evt.clientX, y: evt.clientY };
+      this.selStart = { svgPt: pt };
+      this.marquee.style.display = "block";
+      this.marquee.style.left = `${evt.clientX}px`;
+      this.marquee.style.top = `${evt.clientY}px`;
+      this.marquee.style.width = `0px`;
+      this.marquee.style.height = `0px`;
+      return;
+    }
+
+
     // click person → select + details + start drag
     if (personEl) {
       const id = personEl.dataset.id;
-      if (evt.ctrlKey) this._togglePerson(id);
-      else             this._selectPerson(id, false);
+      if (evt.shiftKey) this._togglePerson(id);
+      else this._selectPerson(id, false);
 
       this.render(this.gen);
       this._updateHighlights();
       this._renderDetails();
 
-      this.dragging   = true;
+      this.dragging = true;
       this.dragTarget = { type: "person", id };
       const p = this.gen.people.get(id);
       this.dragOffset = { x: pt.x - p.position.x, y: pt.y - p.position.y };
@@ -107,9 +129,9 @@ export default class Controller {
     this.render(this.gen);
     this._clearDetails();
 
-    this.dragging   = true;
+    this.dragging = true;
     this.dragTarget = { type: "pan" };
-    this.panStart   = { x: evt.clientX, y: evt.clientY };
+    this.panStart = { x: evt.clientX, y: evt.clientY };
     const vb = this.svg.viewBox.baseVal;
     this.viewBoxStart = { x: vb.x, y: vb.y, width: vb.width, height: vb.height };
     this.svg.classList.add("dragging");
@@ -118,6 +140,22 @@ export default class Controller {
   _onMouseMove(evt) {
     if (!this.dragging) return;
     const pt = this._getSVGPoint(evt);
+
+    // if no other drag target, bail early
+    if (!this.dragTarget) return;
+
+    // update HTML marquee overlay
+    if (this.dragTarget?.type === 'marquee') {
+      const dx = evt.clientX - this.boxStartClient.x;
+      const dy = evt.clientY - this.boxStartClient.y;
+      const left = dx >= 0 ? this.boxStartClient.x : evt.clientX;
+      const top = dy >= 0 ? this.boxStartClient.y : evt.clientY;
+      this.marquee.style.left = `${left}px`;
+      this.marquee.style.top = `${top}px`;
+      this.marquee.style.width = `${Math.abs(dx)}px`;
+      this.marquee.style.height = `${Math.abs(dy)}px`;
+      return;
+    }
 
     if (this.dragTarget.type === "person") {
       const p = this.gen.people.get(this.dragTarget.id);
@@ -140,7 +178,38 @@ export default class Controller {
     }
   }
 
-  _onMouseUp() {
+  _onMouseUp(evt) {
+
+    // finish HTML marquee select
+    if (this.dragTarget?.type === 'marquee') {
+      this.isSelectingBox = false;
+      this.marquee.style.display = "none";
+
+      const endPt = this._getSVGPoint(evt);
+      const x0 = this.selStart.svgPt.x, y0 = this.selStart.svgPt.y;
+      const x1 = endPt.x, y1 = endPt.y;
+      const minX = Math.min(x0, x1), maxX = Math.max(x0, x1);
+      const minY = Math.min(y0, y1), maxY = Math.max(y0, y1);
+
+      this._clearSelection();
+      // select persons whose center falls inside marquee
+      for (const [id, p] of this.gen.people) {
+        const { x, y } = p.position;
+        if (x >= minX && x <= maxX && y >= minY && y <= maxY) {
+          this.selectedPeople.add(id);
+        }
+      }
+      // select relationships whose endpoints fall inside marquee
+
+      // re-render and update details
+      this.render(this.gen);
+      this._updateHighlights();
+      this._renderDetails();
+      this.dragging = false;
+      this.dragTarget = null;
+      this.svg.classList.remove("dragging");
+      return;
+    }
     this.dragging = false;
     this.dragTarget = null;
     this.svg.classList.remove("dragging");
@@ -148,11 +217,11 @@ export default class Controller {
 
   _onKeyDown(evt) {
     if (evt.key.toLowerCase() === "l" &&
-        this.selectedPeople.size === 2 &&
-        !this.selectedRel
+      this.selectedPeople.size === 2 &&
+      !this.selectedRel
     ) {
-      const [a,b] = Array.from(this.selectedPeople);
-      const rel = new Relationship({ type: "married", people: [a,b] });
+      const [a, b] = Array.from(this.selectedPeople);
+      const rel = new Relationship({ type: "married", people: [a, b] });
       this.gen.addRelationship(rel);
       this.render(this.gen);
       this._updateHighlights();
@@ -175,7 +244,7 @@ export default class Controller {
     // keep mouse position fixed
     vb.x = pt.x - (pt.x - x0) * (newW / w0);
     vb.y = pt.y - (pt.y - y0) * (newH / h0);
-    vb.width  = newW;
+    vb.width = newW;
     vb.height = newH;
 
     // redraw
@@ -183,24 +252,24 @@ export default class Controller {
     this._updateHighlights();
   }
 
-  _snapToGrid(x,y) {
+  _snapToGrid(x, y) {
     const s = this.gridSize;
-    return { x: Math.round(x/s) * s, y: Math.round(y/s) * s };
+    return { x: Math.round(x / s) * s, y: Math.round(y / s) * s };
   }
 
   // ——— SELECTION HELPERS ———
 
   _selectPerson(id, append = true) {
-      if (!append) this._clearSelection();
-      // clear any highlighted relationship
-      this.selectedRel = null;
-      this.selectedPeople.add(id);
-      this._updateHighlights();
-    }
+    if (!append) this._clearSelection();
+    // clear any highlighted relationship
+    this.selectedRel = null;
+    this.selectedPeople.add(id);
+    this._updateHighlights();
+  }
 
   _togglePerson(id) {
     if (this.selectedPeople.has(id)) this.selectedPeople.delete(id);
-    else                              this.selectedPeople.add(id);
+    else this.selectedPeople.add(id);
     this._updateHighlights();
   }
 
@@ -246,6 +315,20 @@ export default class Controller {
     const container = this.detailsContainer;
     container.innerHTML = "";
 
+    // multi‐person: show couple dropdown
+    if (this.selectedPeople.size === 2 && !this.selectedRel) {
+      const [id1, id2] = Array.from(this.selectedPeople);
+      return this._renderPairForm(id1, id2);
+    }
+    // single person + single rel (parent/child) → parent/child form
+    if (this.selectedPeople.size === 1 && this.selectedRel) {
+      const pid = Array.from(this.selectedPeople)[0];
+      const rel = this.gen.relationships.get(this.selectedRel);
+      if (["biological_child", "foster_child", "adopted_child"].includes(rel.type)) {
+        return this._renderParentChildForm(rel, pid);
+      }
+    }
+
     // If one person selected
     if (this.selectedPeople.size === 1 && !this.selectedRel) {
       const pid = Array.from(this.selectedPeople)[0];
@@ -271,10 +354,10 @@ export default class Controller {
   }
 
   // Updated _renderPersonForm to include full details per spec
-_renderPersonForm(p) {
+  _renderPersonForm(p) {
     const c = this.detailsContainer;
     c.innerHTML = "";
-  
+
     // Helper to wrap label + field
     const mkField = (labelText, inputEl) => {
       const wrapper = document.createElement("div");
@@ -286,35 +369,35 @@ _renderPersonForm(p) {
       wrapper.appendChild(inputEl);
       return wrapper;
     };
-  
+
     // First Name
     const first = document.createElement("input");
     first.type = "text";
     first.value = p.firstName;
-    first.addEventListener("input", e => { p.firstName = e.target.value; this.render(this.gen); });
+    first.addEventListener("input", evt => { p.firstName = evt.target.value; this.render(this.gen); });
     c.appendChild(mkField("First Name", first));
-  
+
     // Middle Name
     const middle = document.createElement("input");
     middle.type = "text";
     middle.value = p.middleName;
-    middle.addEventListener("input", e => { p.middleName = e.target.value; this.render(this.gen); });
+    middle.addEventListener("input", evt => { p.middleName = evt.target.value; this.render(this.gen); });
     c.appendChild(mkField("Middle Name", middle));
-  
+
     // Last Name
     const last = document.createElement("input");
     last.type = "text";
     last.value = p.lastName;
-    last.addEventListener("input", e => { p.lastName = e.target.value; this.render(this.gen); });
+    last.addEventListener("input", evt => { p.lastName = evt.target.value; this.render(this.gen); });
     c.appendChild(mkField("Last Name", last));
-  
+
     // Hyphenated Last Name
     const hyphen = document.createElement("input");
     hyphen.type = "text";
     hyphen.value = p.hyphenatedLastName;
-    hyphen.addEventListener("input", e => { p.hyphenatedLastName = e.target.value; this.render(this.gen); });
+    hyphen.addEventListener("input", evt => { p.hyphenatedLastName = evt.target.value; this.render(this.gen); });
     c.appendChild(mkField("Hyphenated Last Name", hyphen));
-  
+
     // Former Last Names
     const formerWrapper = document.createElement("div");
     const formerLab = document.createElement("label"); formerLab.textContent = "Former Last Names";
@@ -326,7 +409,7 @@ _renderPersonForm(p) {
       inp.type = "text";
       inp.value = name;
       inp.style.marginTop = "0.25rem";
-      inp.addEventListener("input", e => { p.formerLastNames[idx] = e.target.value; });
+      inp.addEventListener("input", evt => { p.formerLastNames[idx] = evt.target.value; });
       namesContainer.appendChild(inp);
     });
     const addBtn = document.createElement("button");
@@ -340,7 +423,7 @@ _renderPersonForm(p) {
     formerWrapper.appendChild(namesContainer);
     formerWrapper.appendChild(addBtn);
     c.appendChild(formerWrapper);
-  
+
     // Birthdate (D/M/Y)
     const bdFields = ["day", "month", "year"].map(key => {
       const inp = document.createElement("input");
@@ -357,31 +440,31 @@ _renderPersonForm(p) {
       });
       return inp;
     });
-    const bdDiv = document.createElement("div"); bdFields.forEach(i=>bdDiv.appendChild(i));
+    const bdDiv = document.createElement("div"); bdFields.forEach(i => bdDiv.appendChild(i));
     c.appendChild(mkField("Birthdate (D/M/Y)", bdDiv));
-  
+
     // Alive Toggle & Death Date
     const aliveLabel = document.createElement("label");
     aliveLabel.style.display = "block";
     const aliveInp = document.createElement("input");
     aliveInp.type = "checkbox";
     aliveInp.checked = p.alive;
-    aliveInp.addEventListener("change", e => { p.alive = e.target.checked; this.render(this.gen); this._renderDetails(); });
+    aliveInp.addEventListener("change", evt => { p.alive = evt.target.checked; this.render(this.gen); this._renderDetails(); });
     aliveLabel.append(" Alive? ", aliveInp);
     c.appendChild(aliveLabel);
-  
+
     const death = document.createElement("input");
     death.type = "text";
     death.placeholder = "DD/MM/YYYY";
     death.disabled = p.alive;
     if (p.deathDate) death.value = `${p.deathDate.day}/${p.deathDate.month}/${p.deathDate.year}`;
-    death.addEventListener("input", e => {
-      const [dd, mm, yy] = e.target.value.split("/").map(n=>parseInt(n));
+    death.addEventListener("input", evt => {
+      const [dd, mm, yy] = evt.target.value.split("/").map(n => parseInt(n));
       p.deathDate = (dd && mm && yy) ? { day: dd, month: mm, year: yy } : null;
       this.render(this.gen);
     });
     c.appendChild(mkField("Death Date", death));
-  
+
     // Age (auto-calculated)
     const ageDiv = document.createElement("div");
     ageDiv.style.margin = "0.5rem 0";
@@ -398,35 +481,104 @@ _renderPersonForm(p) {
     } else ageVal.textContent = "—";
     ageDiv.append(ageLabel, ageVal);
     c.appendChild(ageDiv);
-  
+
     // Gender
     const genderSel = document.createElement("select");
-    ["male","female","non_binary","other"].forEach(opt => {
-      const o = document.createElement("option"); o.value = opt; o.textContent = opt.replace("_"," ");
+    ["male", "female", "non_binary", "other"].forEach(opt => {
+      const o = document.createElement("option"); o.value = opt; o.textContent = opt.replace("_", " ");
       if (p.gender === opt) o.selected = true;
       genderSel.appendChild(o);
     });
-    genderSel.addEventListener("change", e => { p.gender = e.target.value; this.render(this.gen); });
+    genderSel.addEventListener("change", evt => { p.gender = evt.target.value; this.render(this.gen); });
     c.appendChild(mkField("Gender", genderSel));
-  
+
     // Sexual Orientation
     const orientSel = document.createElement("select");
-    ["straight","gay","lesbian","bisexual","other"].forEach(opt => {
+    ["straight", "gay", "lesbian", "bisexual", "other"].forEach(opt => {
       const o = document.createElement("option"); o.value = opt; o.textContent = opt;
       if (p.sexualOrientation === opt) o.selected = true;
       orientSel.appendChild(o);
     });
-    orientSel.addEventListener("change", e => { p.sexualOrientation = e.target.value; this.render(this.gen); });
+    orientSel.addEventListener("change", evt => { p.sexualOrientation = evt.target.value; this.render(this.gen); });
     c.appendChild(mkField("Sexual Orientation", orientSel));
-  
+
     // Notes
     const notes = document.createElement("textarea");
     notes.rows = 4;
     notes.value = p.notes;
-    notes.addEventListener("input", e => { p.notes = e.target.value; });
+    notes.addEventListener("input", evt => { p.notes = evt.target.value; });
     c.appendChild(mkField("Notes", notes));
   }
-  
+
+  // — Helpers for the new multi‐select forms —
+  _renderPairForm(id1, id2) {
+    const c = this.detailsContainer;
+    c.innerHTML = "";
+    // find existing couple
+    const existing = Array.from(this.gen.relationships.values())
+      .find(r => new Set(r.people).has(id1) && new Set(r.people).has(id2)
+        && ["married", "legal_separation", "divorced", "divorced_remarried",
+          "separation_in_fact", "engagement", "short_term", "temporary", "other_unknown"]
+          .includes(r.type));
+    const sel = document.createElement("select");
+    // none
+    sel.appendChild(Object.assign(document.createElement("option"), {
+      value: "none", textContent: "No Relationship"
+    }));
+    // only couple types
+    RELATIONSHIP_TYPES.filter(o =>
+      ["married", "legal_separation", "divorced", "divorced_remarried",
+        "separation_in_fact", "engagement", "short_term", "temporary", "other_unknown"]
+        .includes(o.code)
+    ).forEach(o => {
+      const opt = document.createElement("option");
+      opt.value = o.code; opt.textContent = o.label;
+      if (existing && existing.type === o.code) opt.selected = true;
+      sel.appendChild(opt);
+    });
+    sel.addEventListener("change", evt => {
+      const code = evt.target.value;
+      if (existing) {
+        code === "none" ? this.gen.removeRelationship(existing.id)
+          : existing.type = code;
+      } else if (code !== "none") {
+        this.gen.addRelationship(new Relationship({
+          type: code, people: [id1, id2]
+        }));
+      }
+      this.render(this.gen);
+      this._updateHighlights();
+    });
+    c.appendChild(Object.assign(document.createElement("label"), {
+      textContent: "Couple Relationship"
+    }));
+    c.appendChild(sel);
+  }
+
+  _renderParentChildForm(rel, childId) {
+    const c = this.detailsContainer;
+    c.innerHTML = "";
+    // find other person as parent
+    const parentId = rel.people.find(pid => pid !== childId);
+    const parent = this.gen.people.get(parentId);
+    const sel = document.createElement("select");
+    ["biological_child", "foster_child", "adopted_child"].forEach(code => {
+      const o = document.createElement("option");
+      o.value = code;
+      o.textContent = RELATIONSHIP_TYPES.find(rt => rt.code === code).label;
+      if (rel.type === code) o.selected = true;
+      sel.appendChild(o);
+    });
+    sel.addEventListener("change", evt => {
+      rel.type = evt.target.value;
+      this.render(this.gen);
+      this._updateHighlights();
+    });
+    c.appendChild(Object.assign(document.createElement("label"), {
+      textContent: `Parent–Child (${parent.firstName} → Child)`
+    }));
+    c.appendChild(sel);
+  }
 
   _renderRelationshipForm(rel) {
     const c = this.detailsContainer;
@@ -441,8 +593,8 @@ _renderPersonForm(p) {
       if (opt.code === rel.type) o.selected = true;
       sel.appendChild(o);
     });
-    sel.addEventListener("change", (e) => {
-      rel.type = e.target.value;
+    sel.addEventListener("change", (evt) => {
+      rel.type = evt.target.value;
       this.render(this.gen);
     });
 

@@ -1,7 +1,7 @@
 // scripts/app.js
 import { Genogram } from "./model.js";
-import { render }   from "./view.js";
-import Controller   from "./controller.js";
+import { render } from "./view.js";
+import Controller from "./controller.js";
 
 document.addEventListener("DOMContentLoaded", () => {
   console.log("🧩 Genogram App initializing...");
