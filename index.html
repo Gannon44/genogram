@@ -1,0 +1,66 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta
+    name="viewport"
+    content="width=device-width, initial-scale=1.0, user-scalable=no"
+  />
+  <title>Genogram Tool</title>
+
+  <!-- Dark‑mode CSS -->
+  <link rel="stylesheet" href="styles/main.css" />
+
+</head>
+<body class="dark">
+
+  <!-- DETAILS OVERLAY -->
+  <aside id="details">
+    <form id="details-form">
+      <h2>Details</h2>
+      <!-- Dynamic form fields go here -->
+      <div id="form-fields">
+        <p>Select a person or relationship</p>
+      </div>
+    </form>
+  </aside>
+
+  <!-- FULL‑SCREEN CANVAS -->
+  <div id="canvas-container">
+    <svg id="canvas" xmlns="http://www.w3.org/2000/svg">
+      <!-- Grid background and all shapes/lines get rendered here -->
+    </svg>
+  </div>
+
+<!-- TOOLBAR: Import / Export JSON -->
+<div
+  id="toolbar"
+  style="position:absolute; top:1rem; right:1rem; z-index:15;"
+>
+  <button id="export-json-btn">Export JSON</button>
+  <button id="import-json-btn">Import JSON</button>
+  <input
+    type="file"
+    id="import-file-input"
+    accept=".json"
+    style="display:none"
+  />
+</div>
+
+  <!-- ADD-OBJECT CONTEXT MENU -->
+  <div id="add-menu" style="display:none; position:absolute; z-index:20;
+       background-color: var(--panel-color); border:1px solid var(--border-color);
+       border-radius:4px; padding:0.5rem;">
+    <button data-gender="male">Add Male</button>
+    <button data-gender="female">Add Female</button>
+    <button data-gender="non_binary">Add Non‑binary</button>
+  </div>
+
+  <!-- Core scripts -->
+  <script type="module" src="scripts/utils.js"></script>
+  <script type="module" src="scripts/model.js"></script>
+  <script type="module" src="scripts/view.js"></script>
+  <script type="module" src="scripts/controller.js"></script>
+  <script type="module" src="scripts/app.js"></script>
+</body>
+</html>

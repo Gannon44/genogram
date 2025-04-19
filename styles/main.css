@@ -1,0 +1,136 @@
+/*--------------------------------------
+  VARIABLES & DARK MODE
+--------------------------------------*/
+:root {
+    --bg-color: #2b2b2b;         /* canvas background */
+    --panel-color: #1f1f1f;      /* details overlay */
+    --text-color: #e0e0e0;
+    --border-color: rgba(255,255,255,0.05); /* grid lines & panel shadow */
+    --highlight-color: #4fc3f7;
+  }
+  
+  /* Apply dark theme */
+  html, body {
+    margin: 0;
+    padding: 0;
+    height: 100%;
+    overflow: hidden;       /* hide page scrollbars */
+    background-color: var(--bg-color);
+    color: var(--text-color);
+    font-family: sans-serif;
+  }
+  
+  /*--------------------------------------
+    DETAILS PANEL (OVERLAY)
+  --------------------------------------*/
+  #details {
+    position: absolute;
+    top: 1rem;
+    left: 1rem;
+    width: 300px;
+    max-height: calc(100vh - 2rem);
+    padding: 1rem;
+    background-color: var(--panel-color);
+    border-radius: 8px;
+    box-shadow: 0 2px 10px var(--border-color);
+    overflow-y: auto;      /* scroll only if content overflows */
+    z-index: 10;
+  }
+  
+  /* Form elements inside details */
+  #details-form label {
+    display: block;
+    margin-top: 0.75rem;
+    font-weight: bold;
+  }
+  #details-form input,
+  #details-form select,
+  #details-form textarea {
+    width: 100%;
+    margin-top: 0.25rem;
+    padding: 0.4rem;
+    background-color: #3a3a3a;
+    color: var(--text-color);
+    border: 1px solid var(--border-color);
+    border-radius: 4px;
+  }
+  #details-form input[type="checkbox"] {
+    width: auto;
+    accent-color: var(--highlight-color);
+  }
+  
+  /*--------------------------------------
+    CANVAS CONTAINER & SVG
+  --------------------------------------*/
+  #canvas-container {
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    cursor: grab;           /* will become grabbing while panning */
+  }
+  /* #canvas {
+    width: 100%;
+    height: 100%;
+    background-color: var(--bg-color);
+    background-image:
+      linear-gradient(to right, var(--border-color) 1px, transparent 1px),
+      linear-gradient(to bottom, var(--border-color) 1px, transparent 1px);
+    background-size: 20px 20px;
+    display: block;
+  } */
+
+  #add-menu button {
+    display: block;
+    width: 100%;
+    margin: 0.25rem 0;
+    background: #3a3a3a;
+    color: var(--text-color);
+    padding: 0.5rem;
+    border-radius: 4px;
+    cursor: pointer;
+  }
+  #add-menu button:hover {
+    background: #4fc3f7;
+  }
+  
+  /*--------------------------------------
+    SVG ELEMENT STYLES
+  --------------------------------------*/
+  .person {
+    fill: #fff;
+    stroke: #555;
+    stroke-width: 2;
+  }
+  .person.selected {
+    stroke: var(--highlight-color);
+    stroke-width: 3;
+  }
+  
+  .relationship {
+    stroke: #888;
+    stroke-width: 2;
+  }
+  
+  .handle {
+    fill: var(--highlight-color);
+    cursor: pointer;
+  }
+  
+  /*--------------------------------------
+    CURSOR STATES (for panning)
+  --------------------------------------*/
+  #canvas-container.dragging {
+    cursor: grabbing;
+  }
+  
+  /*--------------------------------------
+    UTILITY
+  --------------------------------------*/
+  /* Hide any default page borders */
+  * {
+    box-sizing: border-box;
+    border: none;
+  }
+  

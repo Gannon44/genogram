@@ -1,0 +1,27 @@
+{
+  "people": [
+    {
+      "id": "p_nswcem89h",
+      "firstName": "Jack",
+      "middleName": "Gannon",
+      "lastName": "Gonsiorowski",
+      "hyphenatedLastName": "",
+      "formerLastNames": [
+        "",
+        "",
+        ""
+      ],
+      "birthDate": null,
+      "alive": true,
+      "deathDate": null,
+      "gender": "male",
+      "sexualOrientation": "straight",
+      "notes": "creator of this app",
+      "position": {
+        "x": 160,
+        "y": 60
+      }
+    }
+  ],
+  "relationships": []
+}
