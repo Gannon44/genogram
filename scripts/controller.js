@@ -23,14 +23,6 @@ export default class Controller {
     this.viewBoxStart = {};
 
     // // marquee‐select state
-    // this.isSelectingBox = false;
-    // this.selStart       = null;
-    // this.selectBoxEl    = document.createElementNS(this.svg.namespaceURI, "rect");
-    // this.selectBoxEl.setAttribute("class", "select-rect");
-    // this.selectBoxEl.setAttribute("stroke-dasharray", "4");
-    // this.selectBoxEl.setAttribute("fill", "none");
-    // this.svg.appendChild(this.selectBoxEl);
-    // marquee‐select state (HTML overlay)
     this.isSelectingBox = false;
     this.boxStartClient = null;
     this.selStart = null;
@@ -89,18 +81,6 @@ export default class Controller {
       this.addMenu.style.display = "block";
       return;
     }
-
-    // // SHIFT‑drag blank → start box‐select
-    // if (evt.shiftKey && !personEl && !relEl && evt.button === 0) {
-    //   this.isSelectingBox = true;
-    //   this.selStart = { x: evt.clientX, y: evt.clientY, svgPt: pt };
-    //   this.selectBoxEl.style.display = "block";
-    //   this.selectBoxEl.setAttribute("x", pt.x);
-    //   this.selectBoxEl.setAttribute("y", pt.y);
-    //   this.selectBoxEl.setAttribute("width", 0);
-    //   this.selectBoxEl.setAttribute("height", 0);
-    //   return;
-    // }
 
     if (evt.shiftKey && !personEl && !relEl && evt.button === 0) {
       // start marquee selection
@@ -199,37 +179,6 @@ export default class Controller {
   }
 
   _onMouseUp(evt) {
-    // // finish marquee‐select
-    // if (this.isSelectingBox) {
-    //   this.isSelectingBox = false;
-    //   this.selectBoxEl.style.display = "none";
-    //   const box = this.selectBoxEl.getBBox();
-    //   // clear prev selections
-    //   this._clearSelection();
-    //   // select people inside
-    //   for (const [id,p] of this.gen.people) {
-    //     if (p.position.x >= box.x && p.position.x <= box.x+box.width &&
-    //         p.position.y >= box.y && p.position.y <= box.y+box.height) {
-    //       this.selectedPeople.add(id);
-    //     }
-    //   }
-    //   // select any relationship whose endpoints are both inside
-    //   for (const [rid,rel] of this.gen.relationships) {
-    //     const [a,b] = rel.people.map(pid => this.gen.people.get(pid).position);
-    //     if (a.x >= box.x && a.x <= box.x+box.width &&
-    //         a.y >= box.y && a.y <= box.y+box.height &&
-    //         b.x >= box.x && b.x <= box.x+box.width &&
-    //         b.y >= box.y && b.y <= box.y+box.height) {
-    //       this.selectedRel = rid;
-    //     }
-    //   }
-    //   this.render(this.gen);
-    //   this._updateHighlights();
-    //   this._renderDetails();
-    //   return;
-    // }
-
-
 
     // finish HTML marquee select
     if (this.dragTarget?.type === 'marquee') {
