@@ -1,0 +1,51 @@
+{
+  "people": [
+    {
+      "id": "p_h46bro32v",
+      "firstName": "Dave",
+      "middleName": "",
+      "lastName": "",
+      "hyphenatedLastName": "",
+      "formerLastNames": [],
+      "birthDate": null,
+      "alive": true,
+      "deathDate": null,
+      "gender": "male",
+      "sexualOrientation": "straight",
+      "notes": "",
+      "position": {
+        "x": 140,
+        "y": 60
+      }
+    },
+    {
+      "id": "p_ycf4zpvdi",
+      "firstName": "Anita",
+      "middleName": "",
+      "lastName": "",
+      "hyphenatedLastName": "",
+      "formerLastNames": [],
+      "birthDate": null,
+      "alive": true,
+      "deathDate": null,
+      "gender": "female",
+      "sexualOrientation": "straight",
+      "notes": "",
+      "position": {
+        "x": 200,
+        "y": 60
+      }
+    }
+  ],
+  "relationships": [
+    {
+      "id": "r_2tgqmtxn2",
+      "type": "legal_separation",
+      "people": [
+        "p_h46bro32v",
+        "p_ycf4zpvdi"
+      ],
+      "meta": {}
+    }
+  ]
+}
