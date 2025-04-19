@@ -18,7 +18,6 @@ genogram-tool/
 │   ├── controller.js  # Event handling: clicks, drags, keypresses
 │   ├── utils.js       # JSON import/export, date calculations
 │   └── libs/
-│       └── microtemplater.js  # (optional) tiny templating helper
 ├── assets/
 │   └── icons.svg      # Symbols (triangles, twin connectors, etc.)
 ├── examples/
@@ -58,14 +57,16 @@ genogram-tool/
    npx http-server .
    ```
 3. Open `index.html` in your browser.
-4. **Load** `examples/sample.json` via Import to see a demo.
 
 ### Future Enhancements
 
+- Moving members
+- Select multiple members
+- Add relationship
+- Add children
 - Undo/redo stack
-- CSV/XLSX export
-- Custom styling and themes
 - Enhanced auto‑layout algorithms
+- Implement on Github Pages
 
 ---
 
