@@ -94,11 +94,17 @@ export class Relationship {
    * @param {object} opts.meta   – optional extra metadata
    */
   constructor({ id = generateId("r"), type, people = [], meta = {} } = {}) {
-    this.id = id;
-    this.type = type;
-    this.people = Array.isArray(people) ? people : [];
-    this.meta = meta;
-  }
+      this.id = id;
+      this.type = type;
+      this.people = Array.isArray(people) ? people : [];
+      // default drop length for couples
+      const defaultDrop = 60;
+      this.meta = {
+        // allow override via opts.meta.drop
+        drop: (meta.drop != null ? meta.drop : defaultDrop),
+        ...meta
+      };
+    }
 }
 
 /**
