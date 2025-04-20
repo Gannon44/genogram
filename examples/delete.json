@@ -1,0 +1,23 @@
+{
+  "people": [
+    {
+      "id": "p_7ogx1c8sw",
+      "firstName": "Dave",
+      "middleName": "",
+      "lastName": "",
+      "hyphenatedLastName": "",
+      "formerLastNames": [],
+      "birthDate": null,
+      "alive": true,
+      "deathDate": null,
+      "gender": "male",
+      "sexualOrientation": "straight",
+      "notes": "",
+      "position": {
+        "x": 160,
+        "y": 60
+      }
+    }
+  ],
+  "relationships": []
+}
