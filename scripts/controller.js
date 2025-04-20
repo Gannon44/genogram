@@ -115,15 +115,26 @@ export default class Controller {
       return;
     }
 
-    // click relationship → select
+    // click relationship → select + prepare drag
     if (relEl) {
       const id = relEl.dataset.id;
       this._selectRel(id);
       this.render(this.gen);
       this._renderDetails();
+      // begin dragging relationship
+      this.dragging = true;
+      this.dragTarget = { type:"relationship", id };
+      const rel = this.gen.relationships.get(id);
+      // store initial positions & drop
+      const [a,b] = rel.people;
+      this.relOrig = {
+        svgPt: pt,
+        drop: rel.meta.drop,
+        pA: { ...this.gen.people.get(a).position },
+        pB: { ...this.gen.people.get(b).position }
+      };
       return;
     }
-
     // blank click → clear + start pan
     this._clearSelection();
     this.render(this.gen);
@@ -165,6 +176,27 @@ export default class Controller {
       this.render(this.gen);
       this._updateHighlights();
       this._renderDetails();
+
+    } else if (this.dragTarget.type === "relationship") {
+      const rel = this.gen.relationships.get(this.dragTarget.id);
+      const dx = pt.x - this.relOrig.svgPt.x;
+      const dy = pt.y - this.relOrig.svgPt.y;
+      const snapped = this._snapToGrid(dx, dy);
+
+      // horizontal move → slide both people
+      if (Math.abs(dx) >= Math.abs(dy)) {
+        const pA = this.gen.people.get(rel.people[0]);
+        const pB = this.gen.people.get(rel.people[1]);
+        pA.position = this._snapToGrid(this.relOrig.pA.x + snapped.x, this.relOrig.pA.y);
+        pB.position = this._snapToGrid(this.relOrig.pB.x + snapped.x, this.relOrig.pB.y);
+      }
+
+      // vertical move → adjust drop length
+      if (Math.abs(dy) > Math.abs(dx)) {
+        rel.meta.drop = Math.max(40, this._snapToGrid(dx, this.relOrig.drop + dy).y);
+      }
+      this.render(this.gen);
+      return;
     } else if (this.dragTarget.type === "pan") {
       const dx = evt.clientX - this.panStart.x;
       const dy = evt.clientY - this.panStart.y;
@@ -228,10 +260,13 @@ export default class Controller {
     }
     if (evt.key.toLowerCase() === "delete") {
       // delete selected people
+      this._clearDetails();
       this.selectedPeople.forEach((id) => {
         this.gen.removePerson(id);
       });
       this.selectedPeople.clear();
+
+
       // delete selected relationship
       if (this.selectedRel) {
         this.gen.removeRelationship(this.selectedRel);
