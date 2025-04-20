@@ -98,23 +98,28 @@ export default class Controller {
     }
 
 
-    // click person → select + details + start drag
+    // click person → select + details + start multi‑drag
     if (personEl) {
-      const id = personEl.dataset.id;
-      if (evt.shiftKey) this._togglePerson(id);
-      else this._selectPerson(id, false);
+      const clickedId = personEl.dataset.id;
+      if (evt.shiftKey) this._togglePerson(clickedId);
+      else this._selectPerson(clickedId, false);
 
       this.render(this.gen);
       this._updateHighlights();
       this._renderDetails();
 
+      // begin dragging *all* selectedPeople
       this.dragging = true;
-      if (this.selectedPeople) {
-      this.dragTarget = { type: "person", id };
-      const p = this.gen.people.get(id);
-      this.dragOffset = { x: pt.x - p.position.x, y: pt.y - p.position.y };
+      this.dragTarget = { type: "persons", ids: Array.from(this.selectedPeople) };
+
+      // precompute each person’s offset
+      this.dragOffsets = {};
+      this.dragTarget.ids.forEach(pid => {
+        const p = this.gen.people.get(pid);
+        this.dragOffsets[pid] = { x: pt.x - p.position.x, y: pt.y - p.position.y };
+      });
       return;
-    }}
+    }
 
     // click relationship → select + prepare drag
     if (relEl) {
@@ -124,10 +129,10 @@ export default class Controller {
       this._renderDetails();
       // begin dragging relationship
       this.dragging = true;
-      this.dragTarget = { type:"relationship", id };
+      this.dragTarget = { type: "relationship", id };
       const rel = this.gen.relationships.get(id);
       // store initial positions & drop
-      const [a,b] = rel.people;
+      const [a, b] = rel.people;
       this.relOrig = {
         svgPt: pt,
         drop: rel.meta.drop,
@@ -169,16 +174,20 @@ export default class Controller {
       return;
     }
 
-    if (this.dragTarget.type === "person") {
-      const p = this.gen.people.get(this.dragTarget.id);
-      const rawX = pt.x - this.dragOffset.x;
-      const rawY = pt.y - this.dragOffset.y;
-      p.position = this._snapToGrid(rawX, rawY);
-      this.render(this.gen);
-      this._updateHighlights();
-      this._renderDetails();
+    if (this.dragTarget.type === "persons") {
+        // move *every* selected person by their own offset
+        this.dragTarget.ids.forEach(pid => {
+          const p = this.gen.people.get(pid);
+          const off = this.dragOffsets[pid];
+          const rawX = pt.x - off.x;
+          const rawY = pt.y - off.y;
+          p.position = this._snapToGrid(rawX, rawY);
+        });
+        this.render(this.gen);
+        this._updateHighlights();
+        this._renderDetails();
 
-    } else if (this.dragTarget.type === "relationship") {
+      } else if (this.dragTarget.type === "relationship") {
       const rel = this.gen.relationships.get(this.dragTarget.id);
       const dx = pt.x - this.relOrig.svgPt.x;
       const dy = pt.y - this.relOrig.svgPt.y;
@@ -243,8 +252,9 @@ export default class Controller {
       this.svg.classList.remove("dragging");
       return;
     }
-    this.dragging = false;
+    this.dragging   = false;
     this.dragTarget = null;
+    delete this.dragOffsets;
     this.svg.classList.remove("dragging");
   }
 
