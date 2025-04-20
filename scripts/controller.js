@@ -109,11 +109,12 @@ export default class Controller {
       this._renderDetails();
 
       this.dragging = true;
+      if (this.selectedPeople) {
       this.dragTarget = { type: "person", id };
       const p = this.gen.people.get(id);
       this.dragOffset = { x: pt.x - p.position.x, y: pt.y - p.position.y };
       return;
-    }
+    }}
 
     // click relationship → select + prepare drag
     if (relEl) {
