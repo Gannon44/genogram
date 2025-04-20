@@ -226,6 +226,25 @@ export default class Controller {
       this.render(this.gen);
       this._updateHighlights();
     }
+    if (evt.key.toLowerCase() === "delete") {
+      // delete selected people
+      this.selectedPeople.forEach((id) => {
+        this.gen.removePerson(id);
+      });
+      this.selectedPeople.clear();
+      // delete selected relationship
+      if (this.selectedRel) {
+        this.gen.removeRelationship(this.selectedRel);
+        this.selectedRel = null;
+      }
+      this.render(this.gen);
+      this._updateHighlights();
+    }
+    if (evt.key.toLowerCase() === "escape") {
+      this._clearSelection();
+      this._clearDetails();
+      this.render(this.gen);
+    }
   }
 
   _onWheel(evt) {
